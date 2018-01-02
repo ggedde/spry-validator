@@ -427,7 +427,7 @@ class SpryValidator {
                 return false;
             }
 
-        }, $message, array($format, $separator));
+        }, $message, array($this->_getDefaultDateFormat(), '/'));
         return $this;
     }
 
