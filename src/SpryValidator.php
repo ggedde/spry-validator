@@ -124,6 +124,19 @@ class SpryValidator {
         return $this;
     }
 
+	/**
+     * Field must be an Array.
+     *
+     * @param string $message
+     * @return FormValidator
+     */
+    public function isarray($message = null) {
+        $this->setRule(__FUNCTION__, function($val) {
+            return is_array($val);
+        }, $message);
+        return $this;
+    }
+
     /**
      * Field must contain a valid float value.
      *
@@ -174,11 +187,20 @@ class SpryValidator {
      */
     public function min($limit, $include = TRUE, $message = null) {
         $this->setRule(__FUNCTION__, function($val, $args) {
-            if (strlen($val) === 0) {
-                return TRUE;
-            }
 
-            $val = (float) $val;
+			if(is_array($val))
+			{
+				$val = (int) count($val);
+			}
+			else
+			{
+	            if (strlen($val) === 0) {
+	                return TRUE;
+	            }
+
+	            $val = (float) $val;
+			}
+
             $limit = (float) $args[0];
             $inc = (bool) $args[1];
 
@@ -197,11 +219,19 @@ class SpryValidator {
      */
     public function max($limit, $include = TRUE, $message = null) {
         $this->setRule(__FUNCTION__, function($val, $args) {
-            if (strlen($val) === 0) {
-                return TRUE;
-            }
 
-            $val = (float) $val;
+			if(is_array($val))
+			{
+				$val = (int) count($val);
+			}
+			else
+			{
+	            if (strlen($val) === 0) {
+	                return TRUE;
+	            }
+
+	            $val = (float) $val;
+			}
             $limit = (float) $args[0];
             $inc = (bool) $args[1];
 
@@ -277,6 +307,14 @@ class SpryValidator {
      */
     public function length($len, $message = null) {
         $this->setRule(__FUNCTION__, function($val, $args) {
+
+			if(is_array($val))
+			{
+				$val = (int) count($val);
+				$length = (int) $args[0];
+				return ($val === $length);
+			}
+
             return (strlen(trim($val)) == $args[0]);
         }, $message, array($len));
         return $this;
@@ -851,6 +889,10 @@ class SpryValidator {
                 $message = '%s must consist of numbers only.';
                 break;
 
+			case 'isarray':
+                $message = '%s must be an array.';
+                break;
+
             case 'integer':
                 $message = '%s must consist of integer value.';
                 break;
@@ -891,7 +933,7 @@ class SpryValidator {
                 break;
 
             case 'length':
-                $message = '%s must be exactly ' . $args[0] . ' characters in length.';
+                $message = '%s must be exactly ' . $args[0] . ' in length.';
                 break;
 
             case 'matches':
