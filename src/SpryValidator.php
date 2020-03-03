@@ -1,13 +1,18 @@
 <?php
 
+/**
+ * @license MIT
+ * @license https://opensource.org/licenses/MIT
+ */
+
 namespace Spry\SpryProvider;
 
-use Spry\Spry;
 use DateTime;
 use DateTimeZone;
 use Exception;
-use ReflectionMethod;
 use ReflectionFunction;
+use ReflectionMethod;
+use Spry\Spry;
 
 /**
  * Form validation library.
@@ -15,22 +20,21 @@ use ReflectionFunction;
  * @author Tasos Bekos <tbekos@gmail.com>
  * @author Chris Gutierrez <cdotgutierrez@gmail.com>
  * @author Corey Ballou <ballouc@gmail.com>
+ *
  * @see https://github.com/blackbelt/php-validation
  * @see Based on idea: http://brettic.us/2010/06/18/form-validation-class-using-php-5-3/
  */
-
-
-class SpryValidator {
-
-    protected $messages = array();
-    protected $errors = array();
-    protected $rules = array();
-    protected $fields = array();
-    protected $functions = array();
-    protected $arguments = array();
-    protected $filters = array();
+class SpryValidator
+{
+    protected $messages = [];
+    protected $errors = [];
+    protected $rules = [];
+    protected $fields = [];
+    protected $functions = [];
+    protected $arguments = [];
+    protected $filters = [];
     public $data = null;
-    protected $validData = array();
+    protected $validData = [];
 
     /**
      * Constructor.
@@ -38,19 +42,24 @@ class SpryValidator {
      *
      * @param array $data
      */
-    function __construct(array $data = null) {
-        if (!empty($data)) $this->setData($data);
+    public function __construct(array $data = null)
+    {
+        if (!empty($data)) {
+            $this->setData($data);
+        }
     }
 
     /**
-     * set the data to be validated
+     * set the data to be validated.
      *
-     * @access public
      * @param mixed $data
+     *
      * @return FormValidator
      */
-    public function setData(array $data) {
+    public function setData(array $data)
+    {
         $this->data = $data;
+
         return $this;
     }
 
@@ -60,51 +69,58 @@ class SpryValidator {
      * Field, if completed, has to be a valid email address.
      *
      * @param string $message
+     *
      * @return FormValidator
      */
-    public function email($message = null) {
-        $this->setRule(__FUNCTION__, function($email) {
-            if (strlen($email) == 0) return true;
+    public function email($message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($email) {
+            if (empty($email)) {
+                return true;
+            }
+
             $isValid = true;
             $atIndex = strrpos($email, '@');
             if (is_bool($atIndex) && !$atIndex) {
-               $isValid = false;
+                $isValid = false;
             } else {
-                $domain = substr($email, $atIndex+1);
+                $domain = substr($email, $atIndex + 1);
                 $local = substr($email, 0, $atIndex);
                 $localLen = strlen($local);
                 $domainLen = strlen($domain);
                 if ($localLen < 1 || $localLen > 64) {
                     $isValid = false;
-                } else if ($domainLen < 1 || $domainLen > 255) {
+                } elseif ($domainLen < 1 || $domainLen > 255) {
                     // domain part length exceeded
                     $isValid = false;
-                } else if ($local[0] == '.' || $local[$localLen-1] == '.') {
+                } elseif ('.' === $local[0] || '.' === $local[$localLen - 1]) {
                     // local part starts or ends with '.'
                     $isValid = false;
-                } else if (preg_match('/\\.\\./', $local)) {
+                } elseif (preg_match('/\\.\\./', $local)) {
                     // local part has two consecutive dots
                     $isValid = false;
-                } else if (!preg_match('/^[A-Za-z0-9\\-\\.]+$/', $domain)) {
+                } elseif (!preg_match('/^[A-Za-z0-9\\-\\.]+$/', $domain)) {
                     // character not valid in domain part
                     $isValid = false;
-                } else if (preg_match('/\\.\\./', $domain)) {
+                } elseif (preg_match('/\\.\\./', $domain)) {
                     // domain part has two consecutive dots
                     $isValid = false;
-                } else if (!preg_match('/^(\\\\.|[A-Za-z0-9!#%&`_=\\/$\'*+?^{}|~.-])+$/', str_replace("\\\\","",$local))) {
+                } elseif (!preg_match('/^(\\\\.|[A-Za-z0-9!#%&`_=\\/$\'*+?^{}|~.-])+$/', str_replace('\\\\', '', $local))) {
                     // character not valid in local part unless
                     // local part is quoted
-                    if (!preg_match('/^"(\\\\"|[^"])+"$/', str_replace("\\\\","",$local))) {
+                    if (!preg_match('/^"(\\\\"|[^"])+"$/', str_replace('\\\\', '', $local))) {
                         $isValid = false;
                     }
                 }
                 // check DNS
-                if ($isValid && !(checkdnsrr($domain,"MX") || checkdnsrr($domain,"A"))) {
+                if ($isValid && !(checkdnsrr($domain, 'MX') || checkdnsrr($domain, 'A'))) {
                     $isValid = false;
                 }
             }
+
             return $isValid;
         }, $message);
+
         return $this;
     }
 
@@ -112,28 +128,67 @@ class SpryValidator {
      * Field must be filled in.
      *
      * @param string $message
+     *
      * @return FormValidator
      */
-    public function required($message = null) {
-        $this->setRule(__FUNCTION__, function($val) {
+    public function required($message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val) {
             if (is_scalar($val)) {
                 $val = trim($val);
             }
+
             return !empty($val);
         }, $message);
+
         return $this;
     }
 
-	/**
+    /**
+     * Field must a type string.
+     *
+     * @param string $message
+     *
+     * @return FormValidator
+     */
+    public function string($message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val) {
+            return !(false === is_string($val));
+        }, $message);
+
+        return $this;
+    }
+
+    /**
+     * Field must a type boolean.
+     *
+     * @param string $message
+     *
+     * @return FormValidator
+     */
+    public function boolean($message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val) {
+            return !(false === is_bool($val));
+        }, $message);
+
+        return $this;
+    }
+
+    /**
      * Field must be an Array.
      *
      * @param string $message
+     *
      * @return FormValidator
      */
-    public function isarray($message = null) {
-        $this->setRule(__FUNCTION__, function($val) {
+    public function isarray($message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val) {
             return is_array($val);
         }, $message);
+
         return $this;
     }
 
@@ -141,12 +196,15 @@ class SpryValidator {
      * Field must contain a valid float value.
      *
      * @param string $message
+     *
      * @return FormValidator
      */
-    public function float($message = null) {
-        $this->setRule(__FUNCTION__, function($val) {
-            return !(filter_var($val, FILTER_VALIDATE_FLOAT) === FALSE);
+    public function float($message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val) {
+            return !(false === filter_var($val, FILTER_VALIDATE_FLOAT));
         }, $message);
+
         return $this;
     }
 
@@ -154,12 +212,15 @@ class SpryValidator {
      * Field must contain a valid integer value.
      *
      * @param string $message
+     *
      * @return FormValidator
      */
-    public function integer($message = null) {
-        $this->setRule(__FUNCTION__, function($val) {
-            return !(filter_var($val, FILTER_VALIDATE_INT) === FALSE);
+    public function integer($message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val) {
+            return !(false === filter_var($val, FILTER_VALIDATE_INT));
         }, $message);
+
         return $this;
     }
 
@@ -168,12 +229,15 @@ class SpryValidator {
      * This is just like integer(), except there is no upper limit.
      *
      * @param string $message
+     *
      * @return FormValidator
      */
-    public function digits($message = null) {
-        $this->setRule(__FUNCTION__, function($val) {
-            return (strlen($val) === 0 || ctype_digit((string) $val));
+    public function digits($message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val) {
+            return 0 === strlen($val) || ctype_digit((string) $val);
         }, $message);
+
         return $this;
     }
 
@@ -181,31 +245,34 @@ class SpryValidator {
      * Field must be a number greater than [or equal to] X.
      *
      * @param numeric $limit
-     * @param bool $include Whether to include limit value.
-     * @param string $message
+     * @param bool    $include whether to include limit value
+     * @param string  $message
+     *
      * @return FormValidator
      */
-    public function min($limit, $include = TRUE, $message = null) {
-        $this->setRule(__FUNCTION__, function($val, $args) {
+    public function min($limit, $include = true, $message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val, $args) {
+            if (0 === strlen($val)) {
+                return true;
+            }
 
-			if(is_array($val))
-			{
-				$val = (int) count($val);
-			}
-			else
-			{
-	            if (strlen($val) === 0) {
-	                return TRUE;
-	            }
+            if (is_array($val)) {
+                $val = (int) count($val);
+            } else {
+                if (strlen($val) === 0) {
+                    return true;
+                }
 
-	            $val = (float) $val;
-			}
+                $val = (float) $val;
+            }
 
             $limit = (float) $args[0];
             $inc = (bool) $args[1];
 
-            return ($val > $limit || ($inc === TRUE && $val === $limit));
-        }, $message, array($limit, $include));
+            return $val > $limit || (true === $inc && $val === $limit);
+        }, $message, [$limit, $include]);
+
         return $this;
     }
 
@@ -213,30 +280,33 @@ class SpryValidator {
      * Field must be a number greater than [or equal to] X.
      *
      * @param numeric $limit
-     * @param bool $include Whether to include limit value.
-     * @param string $message
+     * @param bool    $include whether to include limit value
+     * @param string  $message
+     *
      * @return FormValidator
      */
-    public function max($limit, $include = TRUE, $message = null) {
-        $this->setRule(__FUNCTION__, function($val, $args) {
+    public function max($limit, $include = true, $message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val, $args) {
+            if (0 === strlen($val)) {
+                return true;
+            }
 
-			if(is_array($val))
-			{
-				$val = (int) count($val);
-			}
-			else
-			{
-	            if (strlen($val) === 0) {
-	                return TRUE;
-	            }
+            if (is_array($val)) {
+                $val = (int) count($val);
+            } else {
+                if (strlen($val) === 0) {
+                    return true;
+                }
 
-	            $val = (float) $val;
-			}
+                $val = (float) $val;
+            }
             $limit = (float) $args[0];
             $inc = (bool) $args[1];
 
-            return ($val < $limit || ($inc === TRUE && $val === $limit));
-        }, $message, array($limit, $include));
+            return $val < $limit || (true === $inc && $val === $limit);
+        }, $message, [$limit, $include]);
+
         return $this;
     }
 
@@ -245,78 +315,93 @@ class SpryValidator {
      *
      * @param numeric $min
      * @param numeric $max
-     * @param bool $include Whether to include limit value.
-     * @param string $message
+     * @param bool    $include whether to include limit value
+     * @param string  $message
+     *
      * @return FormValidator
      */
-    public function between($min, $max, $include = TRUE, $message = null) {
-        $message = $this->_getDefaultMessage(__FUNCTION__, array($min, $max, $include));
+    public function between($min, $max, $include = true, $message = null)
+    {
+        $message = $this->getDefaultMessage(__FUNCTION__, [$min, $max, $include]);
 
         $this->min($min, $include, $message)->max($max, $include, $message);
+
         return $this;
     }
 
     /**
      * Field has to be greater than or equal to X characters long.
      *
-     * @param int $len
+     * @param int    $len
      * @param string $message
+     *
      * @return FormValidator
      */
-    public function minlength($len, $message = null) {
-        $this->setRule(__FUNCTION__, function($val, $args) {
+    public function minlength($len, $message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val, $args) {
             return !(strlen(trim($val)) < $args[0]);
-        }, $message, array($len));
+        }, $message, [$len]);
+
         return $this;
     }
 
     /**
      * Field has to be less than or equal to X characters long.
      *
-     * @param int $len
+     * @param int    $len
      * @param string $message
+     *
      * @return FormValidator
      */
-    public function maxlength($len, $message = null) {
-        $this->setRule(__FUNCTION__, function($val, $args) {
+    public function maxlength($len, $message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val, $args) {
             return !(strlen(trim($val)) > $args[0]);
-        }, $message, array($len));
+        }, $message, [$len]);
+
         return $this;
     }
 
     /**
      * Field has to be between minlength and maxlength characters long.
      *
-     * @param   int $minlength
-     * @param   int $maxlength
-     * @
+     * @param int    $minlength
+     * @param int    $maxlength
+     * @param string $message
+     *
+     * @return mixed
      */
-    public function betweenlength($minlength, $maxlength, $message = null) {
-        $message = empty($message) ? $this->_getDefaultMessage(__FUNCTION__, array($minlength, $maxlength)) : NULL;
+    public function betweenlength($minlength, $maxlength, $message = '')
+    {
+        $message = empty($message) ? $this->getDefaultMessage(__FUNCTION__, [$minlength, $maxlength]) : null;
 
         $this->minlength($minlength, $message)->max($maxlength, $message);
+
         return $this;
     }
 
     /**
      * Field has to be X characters long.
      *
-     * @param int $len
+     * @param int    $len
      * @param string $message
+     *
      * @return FormValidator
      */
-    public function length($len, $message = null) {
-        $this->setRule(__FUNCTION__, function($val, $args) {
+    public function length($len, $message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val, $args) {
+            if (is_array($val)) {
+                $val = (int) count($val);
+                $length = (int) $args[0];
 
-			if(is_array($val))
-			{
-				$val = (int) count($val);
-				$length = (int) $args[0];
-				return ($val === $length);
-			}
+                return ($val === $length);
+            }
 
-            return (strlen(trim($val)) == $args[0]);
-        }, $message, array($len));
+            return strlen(trim($val)) === $args[0];
+        }, $message, [$len]);
+
         return $this;
     }
 
@@ -326,12 +411,15 @@ class SpryValidator {
      * @param string $field
      * @param string $label
      * @param string $message
+     *
      * @return FormValidator
      */
-    public function matches($field, $label, $message = null) {
-        $this->setRule(__FUNCTION__, function($val, $args) {
-            return ((string) $args[0] == (string) $val);
-        }, $message, array($this->_getVal($field), $label));
+    public function matches($field, $label, $message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val, $args) {
+            return (string) $args[0] === (string) $val;
+        }, $message, [$this->getVal($field), $label]);
+
         return $this;
     }
 
@@ -341,12 +429,15 @@ class SpryValidator {
      * @param string $field
      * @param string $label
      * @param string $message
+     *
      * @return FormValidator
      */
-    public function notmatches($field, $label, $message = null) {
-        $this->setRule(__FUNCTION__, function($val, $args) {
-            return ((string) $args[0] != (string) $val);
-        }, $message, array($this->_getVal($field), $label));
+    public function notmatches($field, $label, $message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val, $args) {
+            return (string) $args[0] !== (string) $val;
+        }, $message, [$this->getVal($field), $label]);
+
         return $this;
     }
 
@@ -355,13 +446,17 @@ class SpryValidator {
      *
      * @param string $sub
      * @param string $message
+     *
      * @return FormValidator
      */
-    public function startsWith($sub, $message = null) {
-        $this->setRule(__FUNCTION__, function($val, $args) {
+    public function startsWith($sub, $message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val, $args) {
             $sub = $args[0];
-            return (strlen($val) === 0 || substr($val, 0, strlen($sub)) === $sub);
-        }, $message, array($sub));
+
+            return 0 === strlen($val) || substr($val, 0, strlen($sub)) === $sub;
+        }, $message, [$sub]);
+
         return $this;
     }
 
@@ -370,13 +465,17 @@ class SpryValidator {
      *
      * @param string $sub
      * @param string $message
+     *
      * @return FormValidator
      */
-    public function notstartsWith($sub, $message = null) {
-        $this->setRule(__FUNCTION__, function($val, $args) {
+    public function notstartsWith($sub, $message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val, $args) {
             $sub = $args[0];
-            return (strlen($val) === 0 || substr($val, 0, strlen($sub)) !== $sub);
-        }, $message, array($sub));
+
+            return 0 === strlen($val) || substr($val, 0, strlen($sub)) !== $sub;
+        }, $message, [$sub]);
+
         return $this;
     }
 
@@ -385,13 +484,17 @@ class SpryValidator {
      *
      * @param string $sub
      * @param string $message
+     *
      * @return FormValidator
      */
-    public function endsWith($sub, $message = null) {
-        $this->setRule(__FUNCTION__, function($val, $args) {
+    public function endsWith($sub, $message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val, $args) {
             $sub = $args[0];
-            return (strlen($val) === 0 || substr($val, -strlen($sub)) === $sub);
-        }, $message, array($sub));
+
+            return 0 === strlen($val) || substr($val, -strlen($sub)) === $sub;
+        }, $message, [$sub]);
+
         return $this;
     }
 
@@ -400,13 +503,17 @@ class SpryValidator {
      *
      * @param string $sub
      * @param string $message
+     *
      * @return FormValidator
      */
-    public function notendsWith($sub, $message = null) {
-        $this->setRule(__FUNCTION__, function($val, $args) {
+    public function notendsWith($sub, $message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val, $args) {
             $sub = $args[0];
-            return (strlen($val) === 0 || substr($val, -strlen($sub)) !== $sub);
-        }, $message, array($sub));
+
+            return 0 === strlen($val) || substr($val, -strlen($sub)) !== $sub;
+        }, $message, [$sub]);
+
         return $this;
     }
 
@@ -414,12 +521,15 @@ class SpryValidator {
      * Field has to be valid IP address.
      *
      * @param string $message
+     *
      * @return FormValidator
      */
-    public function ip($message = null) {
-        $this->setRule(__FUNCTION__, function($val) {
-            return (strlen(trim($val)) === 0 || filter_var($val, FILTER_VALIDATE_IP) !== FALSE);
+    public function ip($message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val) {
+            return 0 === strlen(trim($val)) || false !== filter_var($val, FILTER_VALIDATE_IP);
         }, $message);
+
         return $this;
     }
 
@@ -427,105 +537,123 @@ class SpryValidator {
      * Field has to be valid internet address.
      *
      * @param string $message
+     *
      * @return FormValidator
      */
-    public function url($message = null) {
-        $this->setRule(__FUNCTION__, function($val) {
-            return (strlen(trim($val)) === 0 || filter_var($val, FILTER_VALIDATE_URL) !== FALSE);
+    public function url($message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val) {
+            return 0 === strlen(trim($val)) || false !== filter_var($val, FILTER_VALIDATE_URL);
         }, $message);
+
         return $this;
     }
 
     /**
-     * Date format.
+     * Field has to be valid Domain.
      *
-     * @return string
+     * @param string $message
+     *
+     * @return FormValidator
      */
-    protected function _getDefaultDateFormat() {
-        return 'd/m/Y';
+    public function domain($message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val) {
+            return 0 === strlen(trim($val)) || false !== filter_var($val, FILTER_VALIDATE_DOMAIN);
+        }, $message);
+
+        return $this;
     }
 
     /**
      * Field has to be a valid date.
      *
      * @param string $message
+     *
      * @return FormValidator
      */
-    public function date($message = null) {
-        $this->setRule(__FUNCTION__, function($val, $args) {
-
-            if (strlen(trim($val)) === 0) {
-                return TRUE;
+    public function date($message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val, $args) {
+            if (0 === strlen(trim($val))) {
+                return true;
             }
 
             try {
-                $dt = new DateTime($val, new DateTimeZone("UTC"));
+                $dt = new DateTime($val, new DateTimeZone('UTC'));
+
                 return true;
-            } catch(Exception $e) {
+            } catch (Exception $e) {
                 return false;
             }
+        }, $message, [$this->getDefaultDateFormat(), '/']);
 
-        }, $message, array($this->_getDefaultDateFormat(), '/'));
         return $this;
     }
 
     /**
      * Field has to be a date later than or equal to X.
      *
-     * @param   string|int  $date       Limit date
-     * @param   string      $format     Date format
-     * @param   string      $message
+     * @param string|int $date    Limit date
+     * @param string     $format  Date format
+     * @param string     $message
+     *
      * @return FormValidator
      */
-    public function minDate($date = 0, $format = null, $message = null) {
+    public function minDate($date = 0, $format = null, $message = null)
+    {
         if (empty($format)) {
-            $format = $this->_getDefaultDateFormat();
+            $format = $this->getDefaultDateFormat();
         }
         if (is_numeric($date)) {
-            $date = new DateTime($date . ' days'); // Days difference from today
+            $date = new DateTime($date.' days'); // Days difference from today
         } else {
-            $fieldValue = $this->_getVal($date);
-            $date = ($fieldValue == FALSE) ? $date : $fieldValue;
+            $fieldValue = $this->getVal($date);
+            $date = (false === $fieldValue) ? $date : $fieldValue;
 
             $date = DateTime::createFromFormat($format, $date);
         }
 
-        $this->setRule(__FUNCTION__, function($val, $args) {
+        $this->setRule(__FUNCTION__, function ($val, $args) {
             $format = $args[1];
             $limitDate = $args[0];
 
-            return ($limitDate > DateTime::createFromFormat($format, $val)) ? FALSE : TRUE;
-        }, $message, array($date, $format));
+            return ($limitDate > DateTime::createFromFormat($format, $val)) ? false : true;
+        }, $message, [$date, $format]);
+
         return $this;
     }
 
     /**
      * Field has to be a date later than or equal to X.
      *
-     * @param string|integer $date Limit date.
-     * @param string $format Date format.
-     * @param string $message
+     * @param string|int $date    limit date
+     * @param string     $format  date format
+     * @param string     $message
+     *
      * @return FormValidator
      */
-    public function maxDate($date = 0, $format = null, $message = null) {
+    public function maxDate($date = 0, $format = null, $message = null)
+    {
         if (empty($format)) {
-            $format = $this->_getDefaultDateFormat();
+            $format = $this->getDefaultDateFormat();
         }
         if (is_numeric($date)) {
-            $date = new DateTime($date . ' days'); // Days difference from today
+            $date = new DateTime($date.' days'); // Days difference from today
         } else {
-            $fieldValue = $this->_getVal($date);
-            $date = ($fieldValue == FALSE) ? $date : $fieldValue;
+            $fieldValue = $this->getVal($date);
+            $date = (false === $fieldValue) ? $date : $fieldValue;
 
             $date = DateTime::createFromFormat($format, $date);
         }
 
-        $this->setRule(__FUNCTION__, function($val, $args) {
+        $this->setRule(__FUNCTION__, function ($val, $args) {
             $format = $args[1];
             $limitDate = $args[0];
 
             return !($limitDate < DateTime::createFromFormat($format, $val));
-        }, $message, array($date, $format));
+        }, $message, [$date, $format]);
+
         return $this;
     }
 
@@ -533,22 +661,25 @@ class SpryValidator {
      * Field has to be a valid credit card number format.
      *
      * @see https://github.com/funkatron/inspekt/blob/master/Inspekt.php
+     *
      * @param string $message
+     *
      * @return FormValidator
      */
-    public function ccnum($message = null) {
-        $this->setRule(__FUNCTION__, function($value) {
+    public function ccnum($message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($value) {
             $value = str_replace(' ', '', $value);
             $length = strlen($value);
 
             if ($length < 13 || $length > 19) {
-                return FALSE;
+                return false;
             }
 
             $sum = 0;
             $weight = 2;
 
-            for ($i = $length - 2; $i >= 0; $i--) {
+            for ($i = $length - 2; $i >= 0; --$i) {
                 $digit = $weight * $value[$i];
                 $sum += floor($digit / 10) + $digit % 10;
                 $weight = $weight % 2 + 1;
@@ -556,42 +687,149 @@ class SpryValidator {
 
             $mod = (10 - $sum % 10) % 10;
 
-            return ($mod == $value[$length - 1]);
+            return $mod === $value[$length - 1];
         }, $message);
+
         return $this;
     }
 
     /**
      * Field has to be one of the allowed ones.
      *
-     * @param string|array $allowed Allowed values.
-     * @param string $message
+     * @param string|array $allowed allowed values
+     * @param string       $message
+     *
      * @return FormValidator
      */
-    public function oneOf($allowed, $message = null) {
-        if (is_string($allowed)) {
-            $allowed = explode(',', $allowed);
+    public function in($allowed, $message = null)
+    {
+        if (is_string($allowed) && strpos($allowed, ',')) {
+            $allowed = array_map('trim', explode(',', $allowed));
         }
 
-        $this->setRule(__FUNCTION__, function($val, $args) {
-            return in_array($val, $args[0]);
-        }, $message, array($allowed));
+        $this->setRule(__FUNCTION__, function ($val, $args) {
+            return is_array($args[0]) && !is_array($val) && in_array($val, $args[0]);
+        }, $message, [$allowed]);
+
+        return $this;
+    }
+
+    /**
+     * Field has to be one of the allowed ones.
+     *
+     * @param string $has
+     * @param string $message
+     *
+     * @return FormValidator
+     */
+    public function has($has, $message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val, $args) {
+            return is_array($val) && !is_array($args[0]) && in_array($args[0], $val);
+        }, $message, [$has]);
+
+        return $this;
+    }
+
+    /**
+     * Field has to have Symbols.
+     *
+     * @param int    $count
+     * @param string $message
+     *
+     * @return FormValidator
+     */
+    public function hasSymbols($count = 1, $message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val, $args) {
+            return preg_match('/(?=(?:.*[^a-zA-Z\d\s]){'.$args[0].',}).+/m', $val);
+        }, $message, [$count]);
+
+        return $this;
+    }
+
+    /**
+     * Field has to have Numbers.
+     *
+     * @param int    $count
+     * @param string $message
+     *
+     * @return FormValidator
+     */
+    public function hasNumbers($count = 1, $message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val, $args) {
+            return preg_match('/(?=(?:.*[0-9]){'.$args[0].',}).+/m', $val);
+        }, $message, [$count]);
+
+        return $this;
+    }
+
+    /**
+     * Field has to have Letters.
+     *
+     * @param int    $count
+     * @param string $message
+     *
+     * @return FormValidator
+     */
+    public function hasLetters($count = 1, $message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val, $args) {
+            return preg_match('/(?=(?:.*[a-zA-Z]){'.$args[0].',}).+/m', $val);
+        }, $message, [$count]);
+
+        return $this;
+    }
+
+    /**
+     * Field has to have Lowercase Letters.
+     *
+     * @param int    $count
+     * @param string $message
+     *
+     * @return FormValidator
+     */
+    public function hasLowercase($count = 1, $message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val, $args) {
+            return preg_match('/(?=(?:.*[a-z]){'.$args[0].',}).+/m', $val);
+        }, $message, [$count]);
+
+        return $this;
+    }
+
+    /**
+     * Field has to have Uppercase Letters.
+     *
+     * @param int    $count
+     * @param string $message
+     *
+     * @return FormValidator
+     */
+    public function hasUppercase($count = 1, $message = null)
+    {
+        $this->setRule(__FUNCTION__, function ($val, $args) {
+            return preg_match('/(?=(?:.*[A-Z]){'.$args[0].',}).+/m', $val);
+        }, $message, [$count]);
+
         return $this;
     }
 
     // --------------- END [ADD NEW RULE FUNCTIONS ABOVE THIS LINE] ------------
 
     /**
-     * callback
-     * @param   string  $name
-     * @param   mixed   $function
-     * @param   string  $message
-     * @param   mixed   $params
-     * @return  FormValidator
+     * callback.
+     *
+     * @param mixed  $callback
+     * @param string $message
+     * @param mixed  $params
+     *
+     * @return FormValidator
      */
-    public function callback($callback, $message = '', $params = array()) {
+    public function callback($callback, $message = '', $params = [])
+    {
         if (is_callable($callback)) {
-
             // If an array is callable, it is a method
             if (is_array($callback)) {
                 $func = new ReflectionMethod($callback[0], $callback[1]);
@@ -601,35 +839,37 @@ class SpryValidator {
 
             if (!empty($func)) {
                 // needs a unique name to avoild collisions in the rules array
-                $name = 'callback_' . sha1(uniqid());
-                $this->setRule($name, function($value) use ($func, $params, $callback) {
+                $name = 'callback_'.sha1(uniqid());
+                $this->setRule($name, function ($value) use ($func, $params, $callback) {
                     // Creates merged arguments array with validation target as first argument
-                    $args = array_merge(array($value), (is_array($params) ? $params : array($params)));
+                    $args = array_merge([$value], (is_array($params) ? $params : [$params]));
                     if (is_array($callback)) {
                         // If callback is a method, the object must be the first argument
                         return $func->invokeArgs($callback[0], $args);
-                    } else {
-                        return $func->invokeArgs($args);
                     }
+
+                    return $func->invokeArgs($args);
                 }, $message, $params);
             }
-
         } else {
-            throw new Exception(sprintf('%s is not callable.', $function));
+            throw new Exception(sprintf('%s is not callable.', $callback));
         }
 
         return $this;
     }
 
     // ------------------ PRE VALIDATION FILTERING -------------------
+
     /**
-     * add a filter callback for the data
+     * add a filter callback for the data.
      *
      * @param mixed $callback
+     *
      * @return FormValidator
      */
-    public function filter($callback) {
-        if(is_callable($callback)) {
+    public function filter($callback)
+    {
+        if (is_callable($callback)) {
             $this->filters[] = $callback;
         }
 
@@ -637,108 +877,36 @@ class SpryValidator {
     }
 
     /**
-     * applies filters based on a data key
+     * validate.
      *
-     * @access protected
-     * @param string $key
-     * @return void
-     */
-    protected function _applyFilters($key) {
-        $this->_applyFilter($this->data[$key]);
-    }
-
-    /**
-     * recursively apply filters to a value
+     * @param string  $key
+     * @param boolean $recursive
+     * @param string  $label
      *
-     * @access protected
-     * @param mixed $val reference
-     * @return void
-     */
-    protected function _applyFilter(&$val) {
-        if (is_array($val)) {
-            foreach($val as $key => &$item) {
-                $this->_applyFilter($item);
-            }
-        } else {
-            foreach($this->filters as $filter) {
-                $val = $filter($val);
-            }
-        }
-    }
-
-
-    /**
-     * validate
-     * @param string $key
-     * @param string $label
      * @return bool
      */
-    public function validate($key, $recursive = false, $label = '') {
+    public function validate($key, $recursive = false, $label = '')
+    {
         // set up field name for error message
-        $this->fields[$key] = (empty($label)) ? 'Field with the name of [' . $key . ']' : $label;
+        $this->fields[$key] = (empty($label)) ? 'Field with the name of ['.$key.']' : $label;
 
         // apply filters to the data
-        $this->_applyFilters($key);
+        $this->applyFilters($key);
 
-        $val = $this->_getVal($key);
+        $val = $this->getVal($key);
 
         // validate the piece of data
-        $this->_validate($key, $val, $recursive);
+        $this->validateMain($key, $val, $recursive);
 
-        if($this->hasErrors())
-		{
-            Spry::stop(5020, null, $this->getAllErrors());
+        if ($this->hasErrors()) {
+            Spry::stop(520, null, $this->getAllErrors());
         }
 
         // reset rules
-        $this->rules = array();
-        $this->filters = array();
+        $this->rules = [];
+        $this->filters = [];
+
         return $val;
-    }
-
-    /**
-     * recursively validates a value
-     *
-     * @access protected
-     * @param string $key
-     * @param mixed $val
-     * @return bool
-     */
-    protected function _validate($key, $val, $recursive = false)
-    {
-        if ($recursive && is_array($val)) {
-            // run validations on each element of the array
-            foreach($val as $index => $item) {
-                if (!$this->_validate($key, $item, $recursive)) {
-                    // halt validation for this value.
-                    return FALSE;
-                }
-            }
-            return TRUE;
-
-        } else {
-
-            // try each rule function
-            foreach ($this->rules as $rule => $is_true) {
-                if ($is_true) {
-                    $function = $this->functions[$rule];
-                    $args = $this->arguments[$rule]; // Arguments of rule
-
-                    $valid = (empty($args)) ? $function($val) : $function($val, $args);
-
-                    if ($valid === FALSE) {
-                        $this->registerError($rule, $key);
-
-                        $this->rules = array();  // reset rules
-                        $this->filters = array();
-                        return FALSE;
-                    }
-                }
-            }
-
-			$this->validData[$key] = $val;
-            return TRUE;
-        }
     }
 
     /**
@@ -746,38 +914,164 @@ class SpryValidator {
      *
      * @return bool
      */
-    public function hasErrors() {
-        return (count($this->errors) > 0);
+    public function hasErrors()
+    {
+        return count($this->errors) > 0;
     }
 
     /**
      * Get specific error.
      *
      * @param string $field
+     *
      * @return string
      */
-    public function getError($field) {
+    public function getError($field)
+    {
         return $this->errors[$field];
     }
 
     /**
      * Get all errors.
      *
+     * @param boolean $keys
+     *
      * @return array
      */
-    public function getAllErrors($keys = true) {
-        return ($keys == true) ? $this->errors : array_values($this->errors);
+    public function getAllErrors($keys = true)
+    {
+        return (true === $keys) ? $this->errors : array_values($this->errors);
     }
 
+    /**
+     * Returns Valid Data.
+     *
+     * @return array
+     */
     public function getValidData()
     {
         return $this->validData;
     }
 
     /**
-     * _getVal with added support for retrieving values from numeric and
+     * Set rule.
+     *
+     * @param string  $rule
+     * @param closure $function
+     * @param string  $message
+     * @param array   $args
+     *
+     * @return void
+     */
+    public function setRule($rule, $function, $message = '', $args = [])
+    {
+        if (!array_key_exists($rule, $this->rules)) {
+            $this->rules[$rule] = true;
+            if (!array_key_exists($rule, $this->functions)) {
+                if (!is_callable($function)) {
+                    die('Invalid function for rule: '.$rule);
+                }
+                $this->functions[$rule] = $function;
+            }
+            $this->arguments[$rule] = $args; // Specific arguments for rule
+
+            $this->messages[$rule] = (empty($message)) ? $this->getDefaultMessage($rule, $args) : $message;
+        }
+    }
+
+    /**
+     * applies filters based on a data key.
+     *
+     * @param string $key
+     *
+     * @return void
+     */
+    protected function applyFilters($key)
+    {
+        $this->applyFilter($this->data[$key]);
+    }
+
+    /**
+     * recursively apply filters to a value.
+     *
+     * @param mixed $val reference
+     *
+     * @return void
+     */
+    protected function applyFilter(&$val)
+    {
+        if (is_array($val)) {
+            foreach ($val as $key => &$item) {
+                $this->applyFilter($item);
+            }
+        } else {
+            foreach ($this->filters as $filter) {
+                $val = $filter($val);
+            }
+        }
+    }
+
+    /**
+     * recursively validates a value.
+     *
+     * @param string  $key
+     * @param mixed   $val
+     * @param boolean $recursive
+     *
+     * @return bool
+     */
+    protected function validateMain($key, $val, $recursive = false)
+    {
+        if ($recursive && is_array($val)) {
+            // run validations on each element of the array
+            foreach ($val as $index => $item) {
+                if (!$this->validateMain($key, $item, $recursive)) {
+                    // halt validation for this value.
+                    return false;
+                }
+            }
+
+            return true;
+        } else {
+            // try each rule function
+            foreach ($this->rules as $rule => $isTrue) {
+                if ($isTrue) {
+                    $function = $this->functions[$rule];
+                    $args = $this->arguments[$rule]; // Arguments of rule
+
+                    $valid = (empty($args)) ? $function($val) : $function($val, $args);
+
+                    if (false === $valid) {
+                        $this->registerError($rule, $key);
+
+                        $this->rules = []; // reset rules
+                        $this->filters = [];
+
+                        return false;
+                    }
+                }
+            }
+
+            $this->validData[$key] = $val;
+
+            return true;
+        }
+    }
+
+    /**
+     * Date format.
+     *
+     * @return string
+     */
+    protected function getDefaultDateFormat()
+    {
+        return 'd/m/Y';
+    }
+
+    /**
+     * getVal with added support for retrieving values from numeric and
      * associative multi-dimensional arrays. When doing so, use DOT notation
-     * to indicate a break in keys, i.e.:
+     * to indicate a break in keys, i.e.:.
      *
      * key = "one.two.three"
      *
@@ -790,18 +1084,18 @@ class SpryValidator {
      * );
      *
      * @param string $key
+     *
      * @return mixed
      */
-    protected function _getVal($key) {
+    protected function getVal($key)
+    {
         // handle multi-dimensional arrays
-        if (strpos($key, '.') !== FALSE) {
-            $arrData = NULL;
+        if (false !== strpos($key, '.')) {
+            $arrData = null;
             $keys = explode('.', $key);
             $keyLen = count($keys);
             for ($i = 0; $i < $keyLen; ++$i) {
-                if (trim($keys[$i]) == '') {
-                    return false;
-                } else {
+                if ('' !== trim($keys[$i])) {
                     if (is_null($arrData)) {
                         if (!isset($this->data[$keys[$i]])) {
                             return false;
@@ -814,10 +1108,13 @@ class SpryValidator {
                         $arrData = $arrData[$keys[$i]];
                     }
                 }
+
+                return false;
             }
+
             return $arrData;
         } else {
-            return (isset($this->data[$key])) ? $this->data[$key] : FALSE;
+            return (isset($this->data[$key])) ? $this->data[$key] : false;
         }
     }
 
@@ -828,7 +1125,8 @@ class SpryValidator {
      * @param string $key
      * @param string $message
      */
-    protected function registerError($rule, $key, $message = null) {
+    protected function registerError($rule, $key, $message = null)
+    {
         if (empty($message)) {
             $message = $this->messages[$rule];
         }
@@ -837,37 +1135,15 @@ class SpryValidator {
     }
 
     /**
-     * Set rule.
-     *
-     * @param string $rule
-     * @param closure $function
-     * @param string $message
-     * @param array $args
-     */
-    public function setRule($rule, $function, $message = '', $args = array()) {
-        if (!array_key_exists($rule, $this->rules)) {
-            $this->rules[$rule] = TRUE;
-            if (!array_key_exists($rule, $this->functions)) {
-                if (!is_callable($function)) {
-                    die('Invalid function for rule: ' . $rule);
-                }
-                $this->functions[$rule] = $function;
-            }
-            $this->arguments[$rule] = $args; // Specific arguments for rule
-
-            $this->messages[$rule] = (empty($message)) ? $this->_getDefaultMessage($rule, $args) : $message;
-        }
-    }
-
-    /**
      * Get default error message.
      *
-     * @param string $key
-     * @param array $args
+     * @param string $rule
+     * @param array  $args
+     *
      * @return string
      */
-    protected function _getDefaultMessage($rule, $args = null) {
-
+    protected function getDefaultMessage($rule, $args = null)
+    {
         switch ($rule) {
             case 'email':
                 $message = '%s is an invalid email address.';
@@ -881,15 +1157,27 @@ class SpryValidator {
                 $message = '%s is an invalid url.';
                 break;
 
+            case 'domain':
+                $message = '%s is an invalid domain.';
+                break;
+
             case 'required':
                 $message = '%s is required.';
+                break;
+
+            case 'string':
+                $message = '%s must be type string.';
+                break;
+
+            case 'boolean':
+                $message = '%s must be type boolean.';
                 break;
 
             case 'float':
                 $message = '%s must consist of numbers only.';
                 break;
 
-			case 'isarray':
+            case 'isarray':
                 $message = '%s must be an array.';
                 break;
 
@@ -903,61 +1191,61 @@ class SpryValidator {
 
             case 'min':
                 $message = '%s must be greater than ';
-                if ($args[1] == TRUE) {
+                if (true === $args[1]) {
                     $message .= 'or equal to ';
                 }
-                $message .= $args[0] . '.';
+                $message .= $args[0].'.';
                 break;
 
             case 'max':
                 $message = '%s must be less than ';
-                if ($args[1] == TRUE) {
+                if (true === $args[1]) {
                     $message .= 'or equal to ';
                 }
-                $message .= $args[0] . '.';
+                $message .= $args[0].'.';
                 break;
 
             case 'between':
-                $message = '%s must be between ' . $args[0] . ' and ' . $args[1] . '.';
-                if ($args[2] == FALSE) {
+                $message = '%s must be between '.$args[0].' and '.$args[1].'.';
+                if (false === $args[2]) {
                     $message .= '(Without limits)';
                 }
                 break;
 
             case 'minlength':
-                $message = '%s must be at least ' . $args[0] . ' characters or longer.';
+                $message = '%s must be at least '.$args[0].' characters or longer.';
                 break;
 
             case 'maxlength':
-                $message = '%s must be no longer than ' . $args[0] . ' characters.';
+                $message = '%s must be no longer than '.$args[0].' characters.';
                 break;
 
             case 'length':
-                $message = '%s must be exactly ' . $args[0] . ' in length.';
+                $message = '%s must be exactly '.$args[0].' in length.';
                 break;
 
             case 'matches':
-                $message = '%s must match ' . $args[1] . '.';
+                $message = '%s must match '.$args[1].'.';
                 break;
 
             case 'notmatches':
-                $message = '%s must not match ' . $args[1] . '.';
+                $message = '%s must not match '.$args[1].'.';
                 break;
 
             case 'startsWith':
-                $message = '%s must start with "' . $args[0] . '".';
+                $message = '%s must start with "'.$args[0].'".';
                 break;
 
             case 'notstartsWith':
-                $message = '%s must not start with "' . $args[0] . '".';
+                $message = '%s must not start with "'.$args[0].'".';
                 break;
 
             case 'endsWith':
-                $message = '%s must end with "' . $args[0] . '".';
+                $message = '%s must end with "'.$args[0].'".';
                 break;
 
             case 'notendsWith':
-                $message = '%s must not end with "' . $args[0] . '".';
+                $message = '%s must not end with "'.$args[0].'".';
                 break;
 
             case 'date':
@@ -965,19 +1253,43 @@ class SpryValidator {
                 break;
 
             case 'mindate':
-                $message = '%s must be later than ' . $args[0]->format($args[1]) . '.';
+                $message = '%s must be later than '.$args[0]->format($args[1]).'.';
                 break;
 
             case 'maxdate':
-                $message = '%s must be before ' . $args[0]->format($args[1]) . '.';
+                $message = '%s must be before '.$args[0]->format($args[1]).'.';
                 break;
 
-            case 'oneof':
-                $message = '%s must be one of ' . implode(', ', $args[0]) . '.';
+            case 'in':
+                $message = '%s must be one of '.implode(', ', $args[0]).'.';
+                break;
+
+            case 'has':
+                $message = '%s must have '.$args[0].'.';
                 break;
 
             case 'ccnum':
                 $message = '%s must be a valid credit card number.';
+                break;
+
+            case 'hassymbols':
+                $message = '%s must contain at least '.$args[0].' Symbols';
+                break;
+
+            case 'hasnumbers':
+                $message = '%s must contain at least '.$args[0].' Numbers';
+                break;
+
+            case 'hasletters':
+                $message = '%s must contain at least '.$args[0].' Letters';
+                break;
+
+            case 'haslowercase':
+                $message = '%s must contain at least '.$args[0].' Lowercase Letters';
+                break;
+
+            case 'hasuppercase':
+                $message = '%s must contain at least '.$args[0].' Uppercase Letters';
                 break;
 
             default:
@@ -987,5 +1299,4 @@ class SpryValidator {
 
         return $message;
     }
-
 }
