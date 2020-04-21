@@ -899,7 +899,7 @@ class SpryValidator
         $this->validateMain($key, $val, $recursive);
 
         if ($this->hasErrors()) {
-            Spry::stop(520, null, $this->getAllErrors());
+            Spry::stop(20, null, null, $this->getAllErrors());
         }
 
         // reset rules
